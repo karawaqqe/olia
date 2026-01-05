@@ -25,22 +25,39 @@ var loaded = false;
 var init = function () {
   if (loaded) return;
   loaded = true;
+
   var mobile = window.isDevice;
-  var koef = mobile ? 0.5 : 1;
   var canvas = document.getElementById("heart");
   var ctx = canvas.getContext("2d");
-  var width = (canvas.width = koef * innerWidth);
-  var height = (canvas.height = koef * innerHeight);
   var rand = Math.random;
 
-  ctx.fillStyle = "rgba(0,0,0,1)";
-  ctx.fillRect(0, 0, width, height);
+  var width, height;
+
+  // 🔥 DPR + resize FIX
+  function resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    width = rect.width;
+    height = rect.height;
+
+    ctx.fillStyle = "rgba(0,0,0,1)";
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
 
   var drawText = function () {
-    ctx.font = "60px Arial";
+    ctx.font = mobile ? "32px Arial" : "60px Arial";
     ctx.fillStyle = "lightblue";
     ctx.textAlign = "center";
-    ctx.fillText("", width / 2, height / 2.2 + 400);
+    ctx.fillText("", width / 2, height / 2.2 + 200);
   };
 
   var heartPosition = function (rad) {
@@ -59,22 +76,26 @@ var init = function () {
     return [dx + pos[0] * sx, dy + pos[1] * sy];
   };
 
-  window.addEventListener("resize", function () {
-    width = canvas.width = koef * innerWidth;
-    height = canvas.height = koef * innerHeight;
-    ctx.fillStyle = "rgba(0,0,0,1)";
-    ctx.fillRect(0, 0, width, height);
-  });
-
-  var traceCount = mobile ? 20 : 50;
+  var traceCount = mobile ? 12 : 50;
   var pointsOrigin = [];
   var dr = mobile ? 0.3 : 0.1;
+
+  // 💙 масштаб сердца под мобилу
+  var scale = mobile ? 180 : 310;
+  var scaleY = mobile ? 11 : 19;
+
   for (var i = 0; i < Math.PI * 2; i += dr)
-    pointsOrigin.push(scaleAndTranslate(heartPosition(i), 310, 19, 0, 0));
+    pointsOrigin.push(scaleAndTranslate(heartPosition(i), scale, scaleY, 0, 0));
+
   for (var i = 0; i < Math.PI * 2; i += dr)
-    pointsOrigin.push(scaleAndTranslate(heartPosition(i), 250, 15, 0, 0));
+    pointsOrigin.push(
+      scaleAndTranslate(heartPosition(i), scale * 0.8, scaleY * 0.8, 0, 0)
+    );
+
   for (var i = 0; i < Math.PI * 2; i += dr)
-    pointsOrigin.push(scaleAndTranslate(heartPosition(i), 190, 11, 0, 0));
+    pointsOrigin.push(
+      scaleAndTranslate(heartPosition(i), scale * 0.6, scaleY * 0.6, 0, 0)
+    );
 
   var heartPointsCount = pointsOrigin.length;
   var targetPoints = [];
@@ -95,12 +116,11 @@ var init = function () {
     e[i] = {
       vx: 0,
       vy: 0,
-      R: 2,
       speed: rand() + 5,
       q: ~~(rand() * heartPointsCount),
       D: 2 * (i % 2) - 1,
       force: 0.2 * rand() + 0.7,
-      f: "rgb(255, 255, 255)",
+      f: "rgb(255,255,255)",
       trace: Array.from({ length: traceCount }, () => ({ x, y })),
     };
   }
@@ -121,15 +141,13 @@ var init = function () {
       var q = targetPoints[u.q];
       var dx = u.trace[0].x - q[0];
       var dy = u.trace[0].y - q[1];
-      var length = Math.sqrt(dx * dx + dy * dy);
+      var length = Math.sqrt(dx * dx + dy * dy) || 0.001;
 
       if (length < 10) {
-        if (rand() > 0.95) {
-          u.q = ~~(rand() * heartPointsCount);
-        } else {
+        if (rand() > 0.95) u.q = ~~(rand() * heartPointsCount);
+        else {
           if (rand() > 0.99) u.D *= -1;
-          u.q = (u.q + u.D) % heartPointsCount;
-          if (u.q < 0) u.q += heartPointsCount;
+          u.q = (u.q + u.D + heartPointsCount) % heartPointsCount;
         }
       }
 
@@ -152,12 +170,16 @@ var init = function () {
     }
 
     drawText();
-    window.requestAnimationFrame(loop, canvas);
+    requestAnimationFrame(loop);
   };
 
   loop();
 };
 
-var s = document.readyState;
-if (s === "complete" || s === "loaded" || s === "interactive") init();
+if (
+  document.readyState === "complete" ||
+  document.readyState === "loaded" ||
+  document.readyState === "interactive"
+)
+  init();
 else document.addEventListener("DOMContentLoaded", init);
