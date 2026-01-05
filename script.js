@@ -120,7 +120,8 @@ var init = function () {
       q: ~~(rand() * heartPointsCount),
       D: 2 * (i % 2) - 1,
       force: 0.2 * rand() + 0.7,
-      f: "rgb(255,255,255)",
+      f: "rgb(255, 20, 147)"
+,
       trace: Array.from({ length: traceCount }, () => ({ x, y })),
     };
   }
